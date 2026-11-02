@@ -154,8 +154,8 @@
 <body>
 
     <div class="container">
-        <!-- Google Apps Script Web App Connected -->
-        <form action="https://script.google.com/macros/s/AKfycbwCJylLmE1-ILA5V7DfNLjheYG6zCt0lBx_LY6Qs2jc1BrpVCEgnuzIZTaw5qMdOYQq9w/exec" method="POST" id="crushForm" onsubmit="handleFormSubmit(event)">
+        <!-- Formspree Endpoint Connected -->
+        <form action="https://formspree.io/f/meaaprpy" method="POST" id="crushForm" onsubmit="handleFormSubmit(event)">
 
             <!-- PAGE 1: Rules, Prizes, and Scope -->
             <div class="step active" id="step-1">
@@ -332,21 +332,17 @@
             }
         }
 
-        // Handles AJAX submission to Google Apps Script Web App without page reloading
+        // Handles AJAX submission so the user sees the Thank You page seamlessly without page reloading
         async function handleFormSubmit(event) {
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
-            
-            const urlEncodedData = new URLSearchParams();
-            for (const pair of formData.entries()) {
-                urlEncodedData.append(pair[0], pair[1]);
-            }
 
             try {
                 const response = await fetch(form.action, {
-                    method: "POST",
-                    body: urlEncodedData
+                    method: form.method,
+                    body: formData,
+                    headers: { 'Accept': 'json' }
                 });
 
                 if (response.ok) {
