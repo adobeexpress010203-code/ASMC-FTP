@@ -37,11 +37,11 @@
             max-width: 500px;
             border: 1px solid var(--border-color);
             box-sizing: border-box;
+            text-align: center;
         }
 
         h2, h3 {
             color: var(--light-purple);
-            text-align: center;
             margin-top: 0;
         }
 
@@ -49,6 +49,7 @@
             color: var(--text-muted);
             font-size: 14px;
             line-height: 1.5;
+            text-align: left;
         }
 
         ul {
@@ -63,9 +64,10 @@
             font-weight: 600;
             color: var(--light-purple);
             margin-top: 15px;
+            text-align: left;
         }
 
-        input, select, textarea {
+        input, textarea {
             width: 100%;
             padding: 12px;
             background: var(--bg-color);
@@ -78,11 +80,39 @@
             transition: border-color 0.2s;
         }
 
-        input:focus, select:focus, textarea:focus {
+        input:focus, textarea:focus {
             border-color: var(--light-purple);
         }
 
-        button {
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .mcq-btn {
+            flex: 1;
+            padding: 12px;
+            background: var(--bg-color);
+            border: 1px solid #4c1d95;
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0;
+        }
+
+        .mcq-btn.selected {
+            background: var(--accent-purple);
+            color: white;
+            border-color: var(--light-purple);
+            box-shadow: 0 0 10px rgba(147, 51, 234, 0.5);
+        }
+
+        button.action-btn {
             width: 100%;
             padding: 14px;
             background: linear-gradient(135deg, #9333ea, #c084fc);
@@ -96,16 +126,13 @@
             transition: opacity 0.2s, transform 0.1s;
         }
 
-        button:hover {
+        button.action-btn:hover {
             opacity: 0.95;
-        }
-
-        button:active {
-            transform: scale(0.98);
         }
 
         .step {
             display: none;
+            text-align: left;
         }
 
         .step.active {
@@ -118,13 +145,17 @@
             font-style: italic;
             margin-top: 4px;
         }
+
+        .success-box {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- REPLACE THE action URL WITH YOUR FORMSPREE ENDPOINT -->
-        <form action="https://formspree.io/f/meaaprpy" method="POST" id="crushForm">
+        <!-- Formspree Endpoint Connected -->
+        <form action="https://formspree.io/f/meaaprpy" method="POST" id="crushForm" onsubmit="handleFormSubmit(event)">
 
             <!-- PAGE 1: Rules, Prizes, and Scope -->
             <div class="step active" id="step-1">
@@ -135,34 +166,36 @@
                     <li><strong>Prizes:</strong> Amazon Vouchers up for grabs for the Top Overall Diva, Hunk, and Lady Luck's Favourite.</li>
                     <li><strong>Scope:</strong> Includes Batches (e.g., 21-26) and Faculty (Junior Residents, Senior Residents, Professors, Hospital Doctors).</li>
                 </ul>
-                <button type="button" onclick="nextStep(2)">Proceed to Vote 🚀</button>
+                <button type="button" class="action-btn" onclick="nextStep(2)">Proceed to Vote 🚀</button>
             </div>
 
-            <!-- PAGE 2: Are you a student or faculty? -->
+            <!-- PAGE 2: Are you a student or faculty? (MCQ Buttons) -->
             <div class="step" id="step-2">
                 <h3>Who is submitting this?</h3>
-                <label for="user_role">Select your identity category:</label>
-                <select id="user_role" name="user_role" required>
-                    <option value="">-- Select --</option>
-                    <option value="Student">I am a Student</option>
-                    <option value="Faculty">I am Faculty / Resident / Doctor</option>
-                </select>
-                <button type="button" onclick="handleRoleSelection()">Next ➔</button>
+                <label>Select your identity category:</label>
+                
+                <input type="hidden" id="user_role" name="user_role" required>
+                <div class="btn-group">
+                    <button type="button" class="mcq-btn" id="role-student" onclick="selectRole('Student')">I am a Student</button>
+                    <button type="button" class="mcq-btn" id="role-faculty" onclick="selectRole('Faculty')">I am Faculty / Resident / Doctor</button>
+                </div>
+
+                <button type="button" class="action-btn" onclick="handleRoleSelection()">Next ➔</button>
             </div>
 
             <!-- PAGE 3A: STUDENT CONFESSING -->
             <div class="step" id="step-3-student">
                 <h3>Student Submission</h3>
-                <label for="student_identity">Your Name & Batch (Optional - Leave blank to stay anonymous):</label>
-                <input type="text" id="student_identity" name="student_identity" placeholder="e.g., Aryan, Batch 20XX (For Lucky Draw)">
+                <label for="student_identity">Your Name & Batch (Optional):</label>
+                <input type="text" id="student_identity" name="student_identity" placeholder="e.g., Rohan Verma, Batch 2023">
                 <div class="note">Revealing your name enters you into Lady Luck's Favourite lucky draw!</div>
 
                 <label>Who are you confessing to?</label>
-                <select id="student_target_type" name="student_target_type" onchange="updateStudentTargetFields()" required>
-                    <option value="">-- Select Target --</option>
-                    <option value="Student">A Student</option>
-                    <option value="Faculty">A Faculty / Resident / Doctor</option>
-                </select>
+                <input type="hidden" id="student_target_type" name="student_target_type">
+                <div class="btn-group">
+                    <button type="button" class="mcq-btn" id="starget-student" onclick="selectStudentTarget('Student')">A Student</button>
+                    <button type="button" class="mcq-btn" id="starget-faculty" onclick="selectStudentTarget('Faculty')">A Faculty / Resident / Doctor</button>
+                </div>
 
                 <div id="student-target-fields" style="display:none; margin-top: 15px;">
                     <!-- Dynamically populated via JS -->
@@ -173,18 +206,25 @@
             <div class="step" id="step-3-faculty">
                 <h3>Faculty / Resident Submission</h3>
                 <label for="faculty_my_details">Your Name, Designation & Department:</label>
-                <input type="text" id="faculty_my_details" name="faculty_my_details" placeholder="e.g., Dr. Smith, Senior Resident, Surgery">
+                <input type="text" id="faculty_my_details" name="faculty_my_details" placeholder="e.g., Dr. Alok Kumar, Senior Resident, Surgery">
 
                 <label>Who are you confessing to?</label>
-                <select id="faculty_target_type" name="faculty_target_type" onchange="updateFacultyTargetFields()" required>
-                    <option value="">-- Select Target --</option>
-                    <option value="Faculty">Faculty / Resident / Doctor</option>
-                    <option value="Student">A Student</option>
-                </select>
+                <input type="hidden" id="faculty_target_type" name="faculty_target_type">
+                <div class="btn-group">
+                    <button type="button" class="mcq-btn" id="ftarget-faculty" onclick="selectFacultyTarget('Faculty')">Faculty / Resident / Doctor</button>
+                    <button type="button" class="mcq-btn" id="ftarget-student" onclick="selectFacultyTarget('Student')">A Student</button>
+                </div>
 
                 <div id="faculty-target-fields" style="display:none; margin-top: 15px;">
                     <!-- Dynamically populated via JS -->
                 </div>
+            </div>
+
+            <!-- PAGE 4: THANK YOU SUCCESS SCREEN -->
+            <div class="step success-box" id="step-success">
+                <h2>Thank You! 🎉</h2>
+                <p style="text-align: center; color: var(--text-main); margin: 20px 0;">Your response has been successfully recorded.</p>
+                <p style="text-align: center; font-size: 12px; color: #a78bfa;">Keep an eye on the Instagram page for daily leaderboard updates!</p>
             </div>
 
         </form>
@@ -194,6 +234,17 @@
         function nextStep(stepNumber) {
             document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
             document.getElementById('step-' + stepNumber).classList.add('active');
+        }
+
+        function selectRole(role) {
+            document.getElementById('user_role').value = role;
+            document.getElementById('role-student').classList.remove('selected');
+            document.getElementById('role-faculty').classList.remove('selected');
+            if (role === 'Student') {
+                document.getElementById('role-student').classList.add('selected');
+            } else {
+                document.getElementById('role-faculty').classList.add('selected');
+            }
         }
 
         function handleRoleSelection() {
@@ -209,65 +260,98 @@
             }
         }
 
-        // Dynamic fields for Student confessions
-        function updateStudentTargetFields() {
-            const targetType = document.getElementById('student_target_type').value;
+        function selectStudentTarget(targetType) {
+            document.getElementById('student_target_type').value = targetType;
+            document.getElementById('starget-student').classList.remove('selected');
+            document.getElementById('starget-faculty').classList.remove('selected');
+            if (targetType === 'Student') {
+                document.getElementById('starget-student').classList.add('selected');
+            } else {
+                document.getElementById('starget-faculty').classList.add('selected');
+            }
+
             const container = document.getElementById('student-target-fields');
             container.style.display = 'block';
 
             if (targetType === 'Student') {
                 container.innerHTML = `
                     <label for="s_crush_name">Crush's Name & Batch:</label>
-                    <input type="text" id="s_crush_name" name="target_name_batch" required placeholder="e.g., Rahul, Batch 20XX">
+                    <input type="text" id="s_crush_name" name="target_name_batch" required placeholder="e.g., Priya Sharma, Batch 2022">
 
                     <label for="s_reason">What do you like about them?:</label>
-                    <textarea id="s_reason" name="reason" rows="4" required placeholder="Drop the hype/compliment..."></textarea>
+                    <textarea id="s_reason" name="reason" rows="4" required placeholder="e.g., Always brings positive energy to clinical postings!"></textarea>
 
-                    <button type="submit">Submit Confession 🔥</button>
-                `;
-            } else if (targetType === 'Faculty') {
-                container.innerHTML = `
-                    <label for="s_faculty_name">Faculty Name, Designation & Department:</label>
-                    <input type="text" id="s_faculty_name" name="target_faculty_details" required placeholder="e.g., Dr. Sharma, Professor, Medicine">
-
-                    <label for="s_faculty_reason">What do you like about them?:</label>
-                    <textarea id="s_faculty_reason" name="reason" rows="4" required placeholder="Drop the hype/compliment..."></textarea>
-
-                    <button type="submit">Submit Confession 🔥</button>
+                    <button type="submit" class="action-btn">Submit Confession 🔥</button>
                 `;
             } else {
-                container.style.display = 'none';
+                container.innerHTML = `
+                    <label for="s_faculty_name">Faculty Name, Designation & Department:</label>
+                    <input type="text" id="s_faculty_name" name="target_faculty_details" required placeholder="e.g., Dr. Neha Singh, Professor, Anatomy">
+
+                    <label for="s_faculty_reason">What do you like about them?:</label>
+                    <textarea id="s_faculty_reason" name="reason" rows="4" required placeholder="e.g., Makes viva sessions actually fun and engaging."></textarea>
+
+                    <button type="submit" class="action-btn">Submit Confession 🔥</button>
+                `;
             }
         }
 
-        // Dynamic fields for Faculty confessions
-        function updateFacultyTargetFields() {
-            const targetType = document.getElementById('faculty_target_type').value;
+        function selectFacultyTarget(targetType) {
+            document.getElementById('faculty_target_type').value = targetType;
+            document.getElementById('ftarget-faculty').classList.remove('selected');
+            document.getElementById('ftarget-student').classList.remove('selected');
+            if (targetType === 'Faculty') {
+                document.getElementById('ftarget-faculty').classList.add('selected');
+            } else {
+                document.getElementById('ftarget-student').classList.add('selected');
+            }
+
             const container = document.getElementById('faculty-target-fields');
             container.style.display = 'block';
 
             if (targetType === 'Faculty') {
                 container.innerHTML = `
                     <label for="f_target_details">Crush's Name, Designation & Department:</label>
-                    <input type="text" id="f_target_details" name="target_faculty_details" required placeholder="e.g., Dr. Jane, Junior Resident, Pediatrics">
+                    <input type="text" id="f_target_details" name="target_faculty_details" required placeholder="e.g., Dr. Amit Verma, Junior Resident, Medicine">
 
                     <label for="f_reason_1">What do you like about them?:</label>
-                    <textarea id="f_reason_1" name="reason" rows="4" required placeholder="Drop the hype/compliment..."></textarea>
+                    <textarea id="f_reason_1" name="reason" rows="4" required placeholder="e.g., Absolute legend during late-night emergency shifts."></textarea>
 
-                    <button type="submit">Submit Confession 🔥</button>
-                `;
-            } else if (targetType === 'Student') {
-                container.innerHTML = `
-                    <label for="f_student_details">Crush's Name & Batch:</label>
-                    <input type="text" id="f_student_details" name="target_name_batch" required placeholder="e.g., Priya, Batch 20XX">
-
-                    <label for="f_reason_2">What do you like about them?:</label>
-                    <textarea id="f_reason_2" name="reason" rows="4" required placeholder="Drop the hwnd/compliment..."></textarea>
-
-                    <button type="submit">Submit Confession 🔥</button>
+                    <button type="submit" class="action-btn">Submit Confession 🔥</button>
                 `;
             } else {
-                container.style.display = 'none';
+                container.innerHTML = `
+                    <label for="f_student_details">Crush's Name & Batch:</label>
+                    <input type="text" id="f_student_details" name="target_name_batch" required placeholder="e.g., Ananya Gupta, Batch 2024">
+
+                    <label for="f_reason_2">What do you like about them?:</label>
+                    <textarea id="f_reason_2" name="reason" rows="4" required placeholder="e.g., Brilliance in pharmacology presentations stands out."></textarea>
+
+                    <button type="submit" class="action-btn">Submit Confession 🔥</button>
+                `;
+            }
+        }
+
+        // Handles AJAX submission so the user sees the Thank You page seamlessly without page reloading
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch(form.action, {
+                    method: form.method,
+                    body: formData,
+                    headers: { 'Accept': 'json' }
+                });
+
+                if (response.ok) {
+                    nextStep('success');
+                } else {
+                    alert('There was a problem submitting your form. Please try again.');
+                }
+            } catch (error) {
+                alert('There was a network error. Please check your connection.');
             }
         }
     </script>
