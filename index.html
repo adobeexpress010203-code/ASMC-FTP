@@ -130,6 +130,17 @@
             opacity: 0.95;
         }
 
+        button.action-btn:disabled {
+            cursor: wait;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 520px) {
+            body { padding: 12px; }
+            .container { padding: 24px 20px; }
+            .btn-group { flex-direction: column; }
+        }
+
         .step {
             display: none;
             text-align: left;
@@ -153,9 +164,12 @@
 </head>
 <body>
 
+    <!-- Hidden iframe to process Google Apps Script without CORS redirect issues -->
+    <iframe name="hidden_iframe" id="hidden_iframe" title="Submission response" style="display:none;"></iframe>
+
     <div class="container">
-        <!-- Formspree Endpoint Connected -->
-        <form action="https://formspree.io/f/meaaprpy" method="POST" id="crushForm" onsubmit="handleFormSubmit(event)">
+        <!-- Form configured with your new Apps Script Web App URL -->
+        <form action="https://script.google.com/macros/s/AKfycbzGcgczxwGSTgXL4HEs93IFPjVvM1lFm_l219eRkbeyOwCk5ih3v4nTR1xcmIe1SFE54w/exec" method="POST" id="crushForm" target="hidden_iframe" onsubmit="return handleSubmit(event);">
 
             <!-- PAGE 1: Rules, Prizes, and Scope -->
             <div class="step active" id="step-1">
@@ -172,7 +186,7 @@
             <!-- PAGE 2: Are you a student or faculty? (MCQ Buttons) -->
             <div class="step" id="step-2">
                 <h3>Who is submitting this?</h3>
-                <label>Select your identity category:</label>
+                <label for="user_role">Submitter Type — who are you?</label>
                 
                 <input type="hidden" id="user_role" name="user_role" required>
                 <div class="btn-group">
@@ -186,11 +200,11 @@
             <!-- PAGE 3A: STUDENT CONFESSING -->
             <div class="step" id="step-3-student">
                 <h3>Student Submission</h3>
-                <label for="student_identity">Your Name & Batch (Optional):</label>
+                <label for="student_identity">Submitter Identity — your name and batch (optional):</label>
                 <input type="text" id="student_identity" name="student_identity" placeholder="e.g., Rohan Verma, Batch 2023">
                 <div class="note">Revealing your name enters you into Lady Luck's Favourite lucky draw!</div>
 
-                <label>Who are you confessing to?</label>
+                <label>Target Type — who are you confessing to?</label>
                 <input type="hidden" id="student_target_type" name="student_target_type">
                 <div class="btn-group">
                     <button type="button" class="mcq-btn" id="starget-student" onclick="selectStudentTarget('Student')">A Student</button>
@@ -205,10 +219,10 @@
             <!-- PAGE 3B: FACULTY CONFESSING -->
             <div class="step" id="step-3-faculty">
                 <h3>Faculty / Resident Submission</h3>
-                <label for="faculty_my_details">Your Name, Designation & Department:</label>
+                <label for="faculty_my_details">Submitter Identity — your name, designation and department (optional):</label>
                 <input type="text" id="faculty_my_details" name="faculty_my_details" placeholder="e.g., Dr. Alok Kumar, Senior Resident, Surgery">
 
-                <label>Who are you confessing to?</label>
+                <label>Target Type — who are you confessing to?</label>
                 <input type="hidden" id="faculty_target_type" name="faculty_target_type">
                 <div class="btn-group">
                     <button type="button" class="mcq-btn" id="ftarget-faculty" onclick="selectFacultyTarget('Faculty')">Faculty / Resident / Doctor</button>
@@ -223,7 +237,7 @@
             <!-- PAGE 4: THANK YOU SUCCESS SCREEN -->
             <div class="step success-box" id="step-success">
                 <h2>Thank You! 🎉</h2>
-                <p style="text-align: center; color: var(--text-main); margin: 20px 0;">Your response has been successfully recorded.</p>
+                <p style="text-align: center; color: var(--text-main); margin: 20px 0;">Your submission request has been sent. If it does not appear in the spreadsheet, the site owner should check Apps Script → Executions.</p>
                 <p style="text-align: center; font-size: 12px; color: #a78bfa;">Keep an eye on the Instagram page for daily leaderboard updates!</p>
             </div>
 
@@ -231,6 +245,57 @@
     </div>
 
     <script>
+        let isSubmitted = false;
+        let submitTimer = null;
+
+        // The iframe keeps the browser on this page while the form POSTs to Apps Script.
+        // Cross-origin browser restrictions prevent this page from reading the Apps Script response.
+        document.getElementById('hidden_iframe').addEventListener('load', handleIframeLoad);
+
+        function handleSubmit(event) {
+            const form = document.getElementById('crushForm');
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                form.reportValidity();
+                return false;
+            }
+
+            const submitter = event.submitter;
+            isSubmitted = true;
+
+            if (submitter) {
+                submitter.disabled = true;
+                submitter.dataset.originalText = submitter.textContent;
+                submitter.textContent = 'Submitting…';
+                submitter.style.opacity = '0.7';
+            }
+
+            // If the iframe never finishes loading, re-enable the button so the user can retry.
+            clearTimeout(submitTimer);
+            submitTimer = setTimeout(() => {
+                if (isSubmitted) {
+                    isSubmitted = false;
+                    if (submitter) {
+                        submitter.disabled = false;
+                        submitter.textContent = submitter.dataset.originalText || 'Submit Confession 🔥';
+                        submitter.style.opacity = '';
+                    }
+                    alert('The submission is taking too long. Please check your connection and try again.');
+                }
+            }, 20000);
+
+            return true;
+        }
+
+        function handleIframeLoad() {
+            // Ignore the iframe's initial blank-page load.
+            if (!isSubmitted) return;
+
+            clearTimeout(submitTimer);
+            isSubmitted = false;
+            nextStep('success');
+        }
+
         function nextStep(stepNumber) {
             document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
             document.getElementById('step-' + stepNumber).classList.add('active');
@@ -329,29 +394,6 @@
 
                     <button type="submit" class="action-btn">Submit Confession 🔥</button>
                 `;
-            }
-        }
-
-        // Handles AJAX submission so the user sees the Thank You page seamlessly without page reloading
-        async function handleFormSubmit(event) {
-            event.preventDefault();
-            const form = event.target;
-            const formData = new FormData(form);
-
-            try {
-                const response = await fetch(form.action, {
-                    method: form.method,
-                    body: formData,
-                    headers: { 'Accept': 'json' }
-                });
-
-                if (response.ok) {
-                    nextStep('success');
-                } else {
-                    alert('There was a problem submitting your form. Please try again.');
-                }
-            } catch (error) {
-                alert('There was a network error. Please check your connection.');
             }
         }
     </script>
